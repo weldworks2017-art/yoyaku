@@ -1,0 +1,15 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+ html,body{margin:0;padding:0;width:180px;height:180px;overflow:hidden}
+ .i{width:180px;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-family:"Yu Gothic","Hiragino Sans",sans-serif;color:#fff}
+ .c{font-size:76px;font-weight:700;line-height:1}
+ .t{font-size:26px;font-weight:700;margin-top:6px;letter-spacing:2px}
+</style></head><body>
+<div class="i" id="i"><div class="c" id="c"></div><div class="t" id="t"></div></div>
+<script>
+ var q=new URLSearchParams(location.search);
+ document.getElementById('i').style.background=q.get('bg')||'#333';
+ document.getElementById('c').textContent=q.get('c')||'';
+ document.getElementById('t').textContent=q.get('t')||'';
+</script>
+</body></html>

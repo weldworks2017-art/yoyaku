@@ -1,0 +1,106 @@
+<!DOCTYPE html><html lang="ja"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="darkreader-lock">
+<title>練習用｜受付の入力画面（にせもの）</title>
+<link rel="stylesheet" href="style.css">
+<style>
+ .fake{margin:11px 14px 0;background:#fff;border:1px solid #e0dbd1;border-radius:14px;padding:12px 13px}
+ .fake h4{margin:0 0 6px;font-size:14px;color:#96502a}
+ .hint{font-size:11px;color:#9aa1a8}
+ .row3{display:flex;gap:6px}.row3>*{flex:1}
+</style>
+</head><body>
+<div class="wrap">
+  <div class="hd sb"><a href="settings.html">もどる</a>
+    <div class="ttl">練習用の入力画面</div>
+    <div class="sub">本物そっくりのにせもの。どこにも送信されません</div></div>
+  <div class="warn">これは<b>練習用のページ</b>です。ここでショートカット（またはブックマーク）を実行して、
+    欄が埋まるか試してください。本物の受付は 8:30／14:30 にしか開きません。</div>
+  <div id="form"></div>
+  <div class="foot">本物の画面は React という仕組みで作られています。このページも同じ仕組みで作ってあるので、
+    ここで埋まれば本物でも埋まる見込みです。</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js" crossorigin></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js" crossorigin></script>
+<script>
+(function () {
+  if (!window.React) {
+    document.getElementById('form').innerHTML =
+      '<div class="warn danger">練習用の部品を読み込めませんでした（通信がつながっていないかもしれません）。</div>';
+    return;
+  }
+  var e = React.createElement;
+  var years = [], months = [], days = [];
+  for (var y = 2026; y >= 2005; y--) years.push(String(y));
+  for (var m = 1; m <= 12; m++) months.push(String(m));
+  for (var d = 1; d <= 31; d++) days.push(String(d));
+
+  function Sel(props) {
+    return e('select', { value: props.value, onChange: function (ev) { props.onChange(ev.target.value); } },
+      [e('option', { key: '_', value: '' }, props.ph)].concat(props.items.map(function (v) {
+        return e('option', { key: v, value: v }, v + props.suffix);
+      })));
+  }
+  function Person(props) {
+    var p = props.v, set = props.set;
+    return e('div', { className: 'fake' }, [
+      e('h4', { key: 'h' }, props.n + '人目'),
+      e('label', { key: 'l1', className: 'f' }, '名前'),
+      e('input', { key: 'i1', type: 'text', value: p.name,
+        onChange: function (ev) { set('name', ev.target.value); } }),
+      e('div', { key: 'h1', className: 'hint' }, '※ひらがなでご入力ください'),
+      e('label', { key: 'l2', className: 'f' }, '診察券番号'),
+      e('input', { key: 'i2', type: 'tel', inputMode: 'numeric', value: p.card,
+        onChange: function (ev) { set('card', ev.target.value); } }),
+      e('div', { key: 'h2', className: 'hint' }, '※半角入力(新患不可)'),
+      e('label', { key: 'l3', className: 'f' }, '生年月日'),
+      e('div', { key: 'i3', className: 'row3' }, [
+        e(Sel, { key: 'y', value: p.y, items: years, suffix: '年', ph: '年',
+          onChange: function (v) { set('y', v); } }),
+        e(Sel, { key: 'm', value: p.m, items: months, suffix: '月', ph: '月',
+          onChange: function (v) { set('m', v); } }),
+        e(Sel, { key: 'd', value: p.d, items: days, suffix: '日', ph: '日',
+          onChange: function (v) { set('d', v); } })
+      ]),
+      e('label', { key: 'l4', className: 'f' }, '電話番号'),
+      e('input', { key: 'i4', type: 'tel', inputMode: 'numeric', value: p.tel,
+        onChange: function (ev) { set('tel', ev.target.value); } }),
+      e('label', { key: 'l5', className: 'f' }, 'キャンセルコード'),
+      e('input', { key: 'i5', type: 'tel', inputMode: 'numeric', maxLength: 4, value: p.cancel,
+        onChange: function (ev) { set('cancel', ev.target.value); } }),
+      e('div', { key: 'h5', className: 'hint' }, '※半角数字4桁。予約の確認・キャンセルに必要です')
+    ]);
+  }
+  function App() {
+    var init = [];
+    for (var i = 0; i < 3; i++) init.push({ name: '', card: '', y: '', m: '', d: '', tel: '', cancel: '' });
+    var st = React.useState(init), ps = st[0], setPs = st[1];
+    var ag = React.useState(false), agree = ag[0], setAgree = ag[1];
+    function mk(i) {
+      return function (k, v) {
+        setPs(function (old) {
+          var c = old.map(function (x) { return Object.assign({}, x); });
+          c[i][k] = v; return c;
+        });
+      };
+    }
+    return e('div', null, [
+      e('div', { key: 'ps' }, ps.map(function (p, i) {
+        return e(Person, { key: i, n: i + 1, v: p, set: mk(i) });
+      })),
+      e('div', { key: 'ag', className: 'fake' }, [
+        e('label', { key: 'l', className: 'f' }, [
+          e('input', { key: 'c', type: 'checkbox', checked: agree, style: { width: 'auto', marginRight: '6px' },
+            onChange: function (ev) { setAgree(ev.target.checked); } }),
+          '利用規約・プライバシーポリシーに同意する'
+        ]),
+        e('button', { key: 'b', className: 'go', style: { margin: '12px 0 0', width: '100%' },
+          onClick: function () { alert('練習用なので、ここから先には進みません。'); } }, '次へ')
+      ])
+    ]);
+  }
+  ReactDOM.createRoot(document.getElementById('form')).render(e(App));
+})();
+</script>
+</body></html>
