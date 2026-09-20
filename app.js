@@ -1,5 +1,5 @@
 /* T0124 予約ランチャー 共通ロジック
-   kokuba_version: 2026-09-18.1
+   kokuba_version: 2026-09-20.1
    - 個人情報（名前・診察券番号・誕生日・電話・キャンセルコード）は
      この端末の localStorage にだけ保存する。サーバーへは一切送らない。 */
 'use strict';
@@ -19,16 +19,18 @@ var CLINICS = {
     maxPeople: 5,
     steps: [
       ['予約へ  を押す', '医院からのメッセージを下までスクロール'],
-      ['予約人数を選ぶ', '3人なら「3」。最大5人まで選べる'],
+      ['予約人数を選ぶ', '今日は「{N}」を選ぶ（最大5人まで選べる）'],
       ['次へ  を押す', '「空き枠がないため…」と出たらその回は取れない'],
-      ['1人目〜3人目を入力', '名前・診察券番号・生年月日・電話・キャンセルコード'],
+      ['{N}人ぶんを入力', '名前・診察券番号・生年月日・電話・キャンセルコード'],
       ['利用規約に同意', 'チェックすると確認が1枚出る → はい'],
       ['次へ  を押す', '確認画面が出る（まだ完了していない）'],
       ['予約する  を押す', 'ここが確定。押すのは自分'],
       ['受付番号を控える', '下の「控え」に入れておく']
     ],
     notes: [
-      '初診はネット受付できない（電話のみ）',
+      '初診はネット受付できない。初診は電話（059-386-0362）で取る。一度受診すると診察券番号がもらえて、次からネット受付できる',
+      '診察券番号を入れていない子は、この画面に出てこない（ネット受付できないため）',
+      '公式アプリは、このページのリンクからは開かない（別ルート）。アプリで取る日は、上のカウントダウンを見て時刻になったらアプリを開く',
       '平日午後は14:45から院内先着10名に1〜10番。行けるならそちらが速い（土曜はなし）',
       '発熱のときは受付を取ったあと電話で症状を伝える'
     ]
@@ -56,7 +58,8 @@ var CLINICS = {
     notes: [
       '受付開始時刻は医院が公表していない。実測して設定で直すこと',
       'ログインは診察券番号＋誕生日（月・日）だけ',
-      '家族登録（最大5人）をしておくと1回のログインで子を切り替えられる'
+      '家族登録（最大5人）をしておくと1回のログインで子を切り替えられる',
+      'ここも診察券番号が要る。通っていない子は、まず電話で初診を取る'
     ]
   }
 };
@@ -118,10 +121,18 @@ function saveCfg(c) {
   try { localStorage.setItem(SKEY, JSON.stringify(c)); return true; }
   catch (e) { return false; }
 }
+/** その医院の診察券番号を返す（無ければ空文字） */
+function cardOf(person, clinicKey) {
+  return ((clinicKey === 'shibata' ? person.cardShibata : person.cardShindo) || '').trim();
+}
+/** その医院でネット受付できるか。診察券番号が無い＝初診なので不可（2院とも番号が必須） */
+function canBook(person, clinicKey) {
+  return !!(person.name && cardOf(person, clinicKey));
+}
 function activePeople(cfg, clinicKey) {
   var sel = cfg.sel[clinicKey] || [];
   return cfg.people.map(function (p, i) { return { p: p, i: i }; })
-    .filter(function (x) { return sel.indexOf(x.i) >= 0 && x.p.name; })
+    .filter(function (x) { return sel.indexOf(x.i) >= 0 && canBook(x.p, clinicKey); })
     .map(function (x) { return x.p; });
 }
 
@@ -332,7 +343,7 @@ function buildFiller(cfg, clinicKey, agree) {
   var people = activePeople(cfg, clinicKey).map(function (p) {
     return {
       name: p.name,
-      card: clinicKey === 'shibata' ? p.cardShibata : p.cardShindo,
+      card: cardOf(p, clinicKey),
       y: p.y, m: p.m, d: p.d, tel: cfg.tel, cancel: cfg.cancelCode
     };
   });

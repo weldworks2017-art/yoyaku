@@ -1,5 +1,5 @@
 /* T0124 予約ランチャー 発射台ページの組み立て
-   kokuba_version: 2026-09-18.1 */
+   kokuba_version: 2026-09-20.1 */
 'use strict';
 (function () {
   var clinic = CLINICS[document.body.dataset.clinic];
@@ -60,24 +60,34 @@
   /* 受診者 */
   function paintKids() {
     var sel = cfg.sel[clinic.key];
-    $('#kids').innerHTML = cfg.people.map(function (p, i) {
+    var rows = cfg.people.map(function (p, i) {
       if (!p.name) return '';
+      /* 診察券番号が無い＝この医院には通っていない（初診）→ ネット受付できないので選べない */
+      if (!canBook(p, clinic.key)) {
+        return '<div class="kid no">' + p.name +
+          '<span class="n">初診（診察券なし）・電話で取る</span></div>';
+      }
       return '<div class="kid' + (sel.indexOf(i) >= 0 ? ' on' : '') + '" data-i="' + i + '">' +
         p.name + '<span class="n">' + (sel.indexOf(i) >= 0 ? '選ばれています' : 'はずれています') + '</span></div>';
-    }).join('') || '<div class="mini">設定で子の名前を入れると、ここに並びます。</div>';
-    $$('#kids .kid').forEach(function (el) {
+    }).join('');
+    $('#kids').innerHTML = rows || '<div class="mini">設定で子の名前を入れると、ここに並びます。</div>';
+    $$('#kids .kid[data-i]').forEach(function (el) {
       el.addEventListener('click', function () {
         var i = +el.dataset.i, s = cfg.sel[clinic.key], at = s.indexOf(i);
         if (at >= 0) s.splice(at, 1); else { s.push(i); s.sort(); }
-        saveCfg(cfg); paintKids(); paintVals();
+        saveCfg(cfg); paintKids(); paintVals(); paintSteps();
       });
     });
   }
 
-  /* 手順カンペ */
-  $('#steps').innerHTML = clinic.steps.map(function (s) {
-    return '<li>' + s[0] + (s[1] ? '<small>' + s[1] + '</small>' : '') + '</li>';
-  }).join('');
+  /* 手順カンペ（{N} は、いま選ばれている人数に置き換える） */
+  function paintSteps() {
+    var n = activePeople(cfg, clinic.key).length || 1;
+    $('#steps').innerHTML = clinic.steps.map(function (s) {
+      function fill(t) { return String(t).replace(/\{N\}/g, n); }
+      return '<li>' + fill(s[0]) + (s[1] ? '<small>' + fill(s[1]) + '</small>' : '') + '</li>';
+    }).join('');
+  }
 
   /* 入れる値 */
   function row(k, v, small) {
@@ -89,11 +99,13 @@
   function paintVals() {
     var ps = activePeople(cfg, clinic.key);
     if (!ps.length) {
-      $('#vals').innerHTML = '<div class="mini">設定で名前・診察券番号・生年月日などを入れてください。</div>';
+      $('#vals').innerHTML = '<div class="mini">この医院の診察券番号を入れた子がいません。' +
+        '設定で名前・診察券番号・生年月日を入れてください。<br>' +
+        '通ったことがない子（初診）はネット受付できないので、電話で取ってください。</div>';
       return;
     }
     $('#vals').innerHTML = ps.map(function (p) {
-      var card = clinic.key === 'shibata' ? p.cardShibata : p.cardShindo;
+      var card = cardOf(p, clinic.key);
       var bd = (p.y && p.m && p.d) ? (p.y + '年' + (+p.m) + '月' + (+p.d) + '日') : '';
       return '<div class="pname">' + p.name + '</div>' +
         row('名前', p.name, true) + row('診察券', card) +
@@ -172,7 +184,10 @@
       return;
     }
     if (clinic.key === 'shindo') {
-      var sel = cfg.sel.shindo;
+      /* ログインに使うのは診察券番号を持っている子（家族登録してあれば中で切り替えられる） */
+      var sel = cfg.sel.shindo.filter(function (i) {
+        return cfg.people[i] && canBook(cfg.people[i], 'shindo');
+      });
       fireShindo(clinic, cfg, sel.length ? sel[0] : 0);
     } else {
       fireShibata(clinic);
@@ -181,7 +196,7 @@
   $('#gonow').addEventListener('click', go);
 
   /* ---- 起動 ---- */
-  paintSeg(); paintKids(); paintVals(); paintLog(); recalc();
+  paintSeg(); paintKids(); paintSteps(); paintVals(); paintLog(); recalc();
   keepAwake();
   syncClock().then(function () { recalc(); });
   setInterval(syncClock, 5 * 60 * 1000);

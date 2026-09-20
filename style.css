@@ -1,4 +1,9 @@
-/* T0124 予約ランチャー 共通スタイル */
+/* T0124 予約ランチャー 共通スタイル
+   kokuba_version: 2026-09-20.1 */
+/* 医院ごとの色。発射台と設定は JS で上書きする。
+   ここに既定を置いておかないと、色を設定しないページ（練習用）で
+   白文字が白背景に乗って消える。 */
+:root{--c:#96502a}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:#eceae4;color:#1e262c;padding-bottom:40px;
@@ -51,6 +56,8 @@ body{margin:0;background:#eceae4;color:#1e262c;padding-bottom:40px;
 .kid{flex:1 1 30%;text-align:center;padding:10px 0 9px;border-radius:11px;border:1.5px solid #d8d2c7;
  background:#faf8f4;font-size:15px;font-weight:700;color:#8b939a;cursor:pointer}
 .kid.on{background:var(--c);border-color:var(--c);color:#fff}
+/* 診察券番号が無い子＝ネット受付できない。押せないことが見て分かるようにする */
+.kid.no{background:#f3f0ea;border-style:dashed;border-color:#ccc5b8;color:#a8a49c;cursor:default}
 .kid .n{display:block;font-size:10px;font-weight:600;opacity:.7;margin-top:2px}
 
 /* 大ボタン */

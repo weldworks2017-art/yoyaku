@@ -15,13 +15,20 @@
   <div class="card"><h3>受診する子<span class="tag">最大5人</span></h3>
     <div id="people"></div>
     <button class="go sub" id="addp" style="margin:12px 0 0;width:100%">人を足す</button>
+    <div class="warn" style="margin-top:12px">通ったことがない医院の診察券欄は<b>空のままにしてください</b>。
+      2院ともネット受付は診察券番号が必須で、初診は電話でしか取れません。
+      空にしておけば、その子は発射台と自動入力から自動で外れます。
+      初診で一度受診すると番号がもらえるので、そのときここに入れてください。</div>
   </div>
 
-  <div class="card"><h3>3人に共通の値</h3>
+  <div class="card"><h3>みんなに共通の値</h3>
     <label class="f">電話番号</label>
     <input type="tel" id="tel" inputmode="numeric" placeholder="09012345678">
     <label class="f">キャンセルコード（自分で決める4桁）</label>
     <input type="tel" id="cancel" inputmode="numeric" maxlength="4" placeholder="0000">
+    <p class="mini"><b>キャンセルコードとは</b>：しばたの受付画面で毎回「4桁の数字を自分で決めて入れる」欄です。
+      取った受付を<b>あとで取り消す／確認する</b>ときの暗証番号になります。医院が決めるものではないので、
+      ここに好きな4桁を1つ決めて入れておけば、毎回それを使い回せます（覚えておく必要もなくなります）。</p>
     <label class="f">症状のメモ（電話で伝える用・前回の内容が残ります）</label>
     <textarea id="memo" placeholder="例）38.2度・昨夜から・咳あり"></textarea>
   </div>
@@ -63,6 +70,16 @@
       次の受付時間に1回試して、入らない欄があれば直します。</div>
   </div>
 
+  <div class="card"><h3>公式アプリとの使い分け<span class="tag">しばた</span></h3>
+    <p>しばたには公式アプリ（アイチケット広場）があり、名前と診察券番号が最初から入った状態で予約画面が開きます。
+      ただし<b>このページのリンクからアプリは開きません</b>（Web側にアプリへ渡す仕掛けが入っていないことを確認済み）。
+      Webとアプリは別ルートなので、どちらか片方を使ってください。</p>
+    <p class="mini"><b>Webで取る日</b>：発射台を1〜2分前に開いておく。時刻ちょうどに受付ページが自動で開くので、
+      自動入力 → 次へ → 予約する。<br>
+      <b>アプリで取る日</b>：発射台のカウントダウンを時計として見て、0になったらアプリを開く
+      （アプリ自身にカウントダウンは無いため）。</p>
+  </div>
+
   <div class="card"><h3>端末の時計</h3>
     <div id="clock" class="mini">調べています…</div>
   </div>
@@ -95,9 +112,9 @@
         '<label class="f">' + (i + 1) + '人目の名前（受付に入れる形で）</label>' +
         '<input type="text" data-k="name" value="' + esc(p.name) + '" placeholder="にしはら あかり">' +
         '<div class="row2"><div><label class="f">しばたの診察券</label>' +
-        '<input type="tel" data-k="cardShibata" inputmode="numeric" value="' + esc(p.cardShibata) + '"></div>' +
+        '<input type="tel" data-k="cardShibata" inputmode="numeric" placeholder="未受診なら空" value="' + esc(p.cardShibata) + '"></div>' +
         '<div><label class="f">しんどうの診察券</label>' +
-        '<input type="tel" data-k="cardShindo" inputmode="numeric" value="' + esc(p.cardShindo) + '"></div></div>' +
+        '<input type="tel" data-k="cardShindo" inputmode="numeric" placeholder="未受診なら空" value="' + esc(p.cardShindo) + '"></div></div>' +
         '<label class="f">生年月日</label><div class="row2">' +
         '<input type="tel" data-k="y" inputmode="numeric" maxlength="4" placeholder="2018" value="' + esc(p.y) + '">' +
         '<input type="tel" data-k="m" inputmode="numeric" maxlength="2" placeholder="5" value="' + esc(p.m) + '">' +

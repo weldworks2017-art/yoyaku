@@ -72,10 +72,10 @@
       e('div', { key: 'h5', className: 'hint' }, '※半角数字4桁。予約の確認・キャンセルに必要です')
     ]);
   }
+  function blank() { return { name: '', card: '', y: '', m: '', d: '', tel: '', cancel: '' }; }
   function App() {
-    var init = [];
-    for (var i = 0; i < 3; i++) init.push({ name: '', card: '', y: '', m: '', d: '', tel: '', cancel: '' });
-    var st = React.useState(init), ps = st[0], setPs = st[1];
+    /* 本物は「予約人数」を選んだぶんだけ入力欄が出る。既定は1人（しばたでネット受付できるのが1人のとき） */
+    var st = React.useState([blank()]), ps = st[0], setPs = st[1];
     var ag = React.useState(false), agree = ag[0], setAgree = ag[1];
     function mk(i) {
       return function (k, v) {
@@ -85,7 +85,29 @@
         });
       };
     }
+    function setCount(n) {
+      setPs(function (old) {
+        var c = [];
+        for (var i = 0; i < n; i++) c.push(old[i] ? Object.assign({}, old[i]) : blank());
+        return c;
+      });
+    }
     return e('div', null, [
+      /* 人数の切替はボタンで作る。select にすると自動入力が「月の欄」と勘違いするため
+         （本物では人数を選ぶのは1つ前の画面で、入力画面には人数の欄が無い） */
+      e('div', { key: 'cnt', className: 'fake' }, [
+        e('h4', { key: 'h' }, '予約人数（練習用の切替）'),
+        e('div', { key: 'bs', className: 'row3' }, ['1', '2', '3', '4', '5'].map(function (v) {
+          return e('button', {
+            key: v, type: 'button',
+            className: 'kid' + (String(ps.length) === v ? ' on' : ''),
+            style: { fontFamily: 'inherit' },
+            onClick: function () { setCount(+v); }
+          }, v + '人');
+        })),
+        e('div', { key: 'hint', className: 'hint', style: { marginTop: '6px' } },
+          '本物と同じで、選んだ人数ぶんだけ下の入力欄が増えます。本物ではこの選択は1つ前の画面です。')
+      ]),
       e('div', { key: 'ps' }, ps.map(function (p, i) {
         return e(Person, { key: i, n: i + 1, v: p, set: mk(i) });
       })),
