@@ -1,5 +1,5 @@
 /* T0124 予約ランチャー 発射台ページの組み立て
-   kokuba_version: 2026-09-20.2 */
+   kokuba_version: 2026-09-20.3 */
 'use strict';
 (function () {
   var clinic = CLINICS[document.body.dataset.clinic];
