@@ -38,6 +38,17 @@
     <div id="fires"></div>
   </div>
 
+  <div class="card"><h3>しんどうのログイン<span class="tag">3人まとめて取るなら必須</span></h3>
+    <p>しんどうは<b>1人ぶんの診察券番号でログインする</b>仕組みです。ログインした子の画面に
+      ほかの子を出すには、その子を<b>代表者</b>にした<b>家族登録</b>（最大5人）が要ります。</p>
+    <label class="f">ログインに使う子（＝家族登録の代表者）</label>
+    <select id="loginwho"></select>
+    <p class="mini"><b>家族登録のやり方（1回だけ・いまできます）</b><br>
+      しんどうの受付サイトにログイン → トップの「家族登録」 → 足したい子の診察券番号と誕生日を入れて「登録確認」→「登録する」。
+      これを済ませると、受付のとき<b>チェックを入れるだけ</b>で子を選べます。<br>
+      ※すでに別の家族登録の代表者になっている子は登録できません。その場合は一度解除してからやり直します。</p>
+  </div>
+
   <div class="card"><h3>しんどうの着地先</h3>
     <p>開始時刻になったとき、診察券番号と誕生日を送ってログイン済みの画面に着地します。</p>
     <label class="f">どこに着地するか</label>
@@ -70,14 +81,17 @@
       次の受付時間に1回試して、入らない欄があれば直します。</div>
   </div>
 
-  <div class="card"><h3>公式アプリとの使い分け<span class="tag">しばた</span></h3>
-    <p>しばたには公式アプリ（アイチケット広場）があり、名前と診察券番号が最初から入った状態で予約画面が開きます。
+  <div class="card"><h3>公式アプリ・呼出通知との使い分け</h3>
+    <p><b>しばた</b>には公式アプリ（アイチケット広場）があり、名前と診察券番号が最初から入った状態で予約画面が開きます。
       ただし<b>このページのリンクからアプリは開きません</b>（Web側にアプリへ渡す仕掛けが入っていないことを確認済み）。
       Webとアプリは別ルートなので、どちらか片方を使ってください。</p>
     <p class="mini"><b>Webで取る日</b>：発射台を1〜2分前に開いておく。時刻ちょうどに受付ページが自動で開くので、
       自動入力 → 次へ → 予約する。<br>
       <b>アプリで取る日</b>：発射台のカウントダウンを時計として見て、0になったらアプリを開く
-      （アプリ自身にカウントダウンは無いため）。</p>
+      （アプリ自身にカウントダウンは無いため）。アプリで取れるのは、そのアプリに登録済みの子だけです。</p>
+    <p><b>しんどう</b>に公式アプリはありません。そのかわり受付サイトの「メール設定」で
+      <b>当日呼出メール</b>（順番が近づくと届く）・前日確認メール・予約完了メールを入れられます。
+      呼出の通知がほしいならこれを登録してください。</p>
   </div>
 
   <div class="card"><h3>端末の時計</h3>
@@ -128,6 +142,7 @@
         var i = +el.closest('.pblk').dataset.i;
         cfg.people[i][el.dataset.k] = el.value.trim();
         saveCfg(cfg);
+        if (el.dataset.k === 'name' || el.dataset.k === 'cardShindo') paintLoginWho();
       });
     });
     $$('#people .del').forEach(function (b) {
@@ -137,7 +152,8 @@
         ['shibata', 'shindo'].forEach(function (k) {
           cfg.sel[k] = cfg.people.map(function (_, n) { return n; });
         });
-        saveCfg(cfg); paintPeople();
+        cfg.shindoLoginIdx = -1;
+        saveCfg(cfg); paintPeople(); paintLoginWho();
       });
     });
   }
@@ -147,7 +163,7 @@
     cfg.people.push({ name: '', cardShibata: '', cardShindo: '', y: '', m: '', d: '' });
     cfg.sel.shibata.push(cfg.people.length - 1);
     cfg.sel.shindo.push(cfg.people.length - 1);
-    saveCfg(cfg); paintPeople();
+    saveCfg(cfg); paintPeople(); paintLoginWho();
   });
 
   /* ---- 共通の値 ---- */
@@ -181,6 +197,23 @@
       el.addEventListener('change', function () { cfg.auto[el.dataset.a] = el.checked; saveCfg(cfg); });
     });
   }
+
+  /* ---- しんどうのログインに使う子（家族登録の代表者） ---- */
+  function paintLoginWho() {
+    var opts = ['<option value="-1">おまかせ（選ばれている子の先頭）</option>'];
+    cfg.people.forEach(function (p, i) {
+      if (!p.name || !canBook(p, 'shindo')) return;
+      opts.push('<option value="' + i + '">' + esc(p.name) + '</option>');
+    });
+    var sel = $('#loginwho');
+    sel.innerHTML = opts.join('');
+    sel.value = String(cfg.shindoLoginIdx);
+    if (sel.value === '') { sel.value = '-1'; cfg.shindoLoginIdx = -1; saveCfg(cfg); }
+  }
+  $('#loginwho').addEventListener('change', function () {
+    cfg.shindoLoginIdx = parseInt($('#loginwho').value, 10);
+    saveCfg(cfg); toast('保存しました');
+  });
 
   /* ---- しんどうの着地先 ---- */
   $('#landing').value = cfg.shindoLanding;
@@ -216,7 +249,7 @@
     location.reload();
   });
 
-  paintPeople(); paintFires();
+  paintPeople(); paintFires(); paintLoginWho();
 })();
 </script>
 </body></html>

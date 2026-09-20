@@ -1,5 +1,5 @@
 /* T0124 予約ランチャー 共通ロジック
-   kokuba_version: 2026-09-20.1
+   kokuba_version: 2026-09-20.2
    - 個人情報（名前・診察券番号・誕生日・電話・キャンセルコード）は
      この端末の localStorage にだけ保存する。サーバーへは一切送らない。 */
 'use strict';
@@ -39,8 +39,9 @@ var CLINICS = {
     key: 'shindo', name: 'しんどう小児科', formal: '新藤小児科クリニック',
     color: '#1b5566', cls: 'sd',
     closedDows: [0, 3],              // 日・水 休診（＋祝日）
-    hours: { am: '9:00-12:00', pm: '15:00-18:30（火は17:00まで／土は15:30-）' },
-    openDows: { am: [1, 2, 4, 5, 6], pm: [1, 2, 4, 5, 6] },
+    hours: { am: '9:00-12:00', pm: '16:30-18:15（土は無し）' },
+    /* 土曜の午後は乳児健診・予防接種の専用時間で一般診療が無いため、午後は月火木金だけ */
+    openDows: { am: [1, 2, 4, 5, 6], pm: [1, 2, 4, 5] },
     fire: { am: '08:30:01', pm: '14:30:01' },
     fireFixed: false,                // ★受付開始時刻は未確定。実測して設定で直す
     target: 'https://c.inet489.jp/snd0101/yoyaku/login.cgi',
@@ -49,17 +50,22 @@ var CLINICS = {
     todayUrl: 'https://c.inet489.jp/snd0101/yoyaku/todayinfo.cgi',
     maxPeople: 5,
     steps: [
-      ['診察  を押す', 'ログイン済みの画面から始まる'],
-      ['受診者を選ぶ', '家族登録してあれば子の名前が並ぶ'],
-      ['午前／午後 を選ぶ', ''],
-      ['確認  を押す', ''],
-      ['予約  を押す', 'ここが確定。押すのは自分']
+      ['診察  を押す', 'ログイン済みのメニューから始まる'],
+      ['受診する子にチェック', '家族登録してあれば{N}人ぶんまとめて選べる'],
+      ['次へ  を押す', ''],
+      ['午前／午後 を選ぶ', '予約区分を選ぶ画面'],
+      ['予約  を押す', 'ここが確定。押すのは自分'],
+      ['受付番号を控える', '下の「控え」に入れておく']
     ],
     notes: [
-      '受付開始時刻は医院が公表していない。実測して設定で直すこと',
+      '受付開始時刻は医院が公表していない。電話で聞くか実測して、設定で直すこと',
       'ログインは診察券番号＋誕生日（月・日）だけ',
-      '家族登録（最大5人）をしておくと1回のログインで子を切り替えられる',
-      'ここも診察券番号が要る。通っていない子は、まず電話で初診を取る'
+      '家族登録（最大5人）をしておくと、1回のログインで子をまとめて選べる。発射台のログインは「代表者」の診察券番号で行う（設定で選ぶ）',
+      'ここも診察券番号が要る。通っていない子は、まず電話で初診を取る',
+      '木曜の一般診療はネット受付をした人だけ。木曜こそこのページを使う日',
+      '土曜の午後は乳児健診・予防接種の専用時間で、一般診療は無い（午後のカウントダウンは土曜を飛ばす）',
+      '午後の一般診療は16:30から（14:15-16:30は健診・予防接種の枠）',
+      'この医院に公式アプリは無いが、メール設定で「当日呼出メール」を入れられる（順番が近づくと届く）'
     ]
   }
 };
@@ -89,6 +95,7 @@ var DEFAULTS = {
   fire: { shibata: { am: '08:30:01', pm: '14:30:01' }, shindo: { am: '08:30:01', pm: '14:30:01' } },
   auto: { shibata: true, shindo: true },
   shindoLanding: 'menu',
+  shindoLoginIdx: -1,              // しんどうのログインに使う子（家族登録の代表者）。-1 = おまかせ
   sel: { shibata: [0, 1, 2], shindo: [0, 1, 2] },
   log: []
 };
@@ -114,6 +121,7 @@ function loadCfg() {
     if (!Array.isArray(c.sel[k])) c.sel[k] = [0, 1, 2];
   });
   c.shindoLanding = c.shindoLanding || 'menu';
+  if (typeof c.shindoLoginIdx !== 'number') c.shindoLoginIdx = -1;
   if (!Array.isArray(c.log)) c.log = [];
   return c;
 }
@@ -134,6 +142,21 @@ function activePeople(cfg, clinicKey) {
   return cfg.people.map(function (p, i) { return { p: p, i: i }; })
     .filter(function (x) { return sel.indexOf(x.i) >= 0 && canBook(x.p, clinicKey); })
     .map(function (x) { return x.p; });
+}
+/** しんどうのログインに使う子の番号を返す。
+    家族登録の「代表者」でログインしないと他の子が画面に出てこないので、
+    設定で指定があればそれを最優先する。無ければ選ばれている子の先頭。 */
+function shindoLoginIndex(cfg) {
+  var i = cfg.shindoLoginIdx;
+  if (i >= 0 && cfg.people[i] && canBook(cfg.people[i], 'shindo')) return i;
+  var sel = (cfg.sel.shindo || []).filter(function (n) {
+    return cfg.people[n] && canBook(cfg.people[n], 'shindo');
+  });
+  if (sel.length) return sel[0];
+  for (var n = 0; n < cfg.people.length; n++) {
+    if (canBook(cfg.people[n], 'shindo')) return n;
+  }
+  return 0;
 }
 
 /* ===== 時計合わせ ====================================================

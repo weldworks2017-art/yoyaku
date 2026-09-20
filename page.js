@@ -1,5 +1,5 @@
 /* T0124 予約ランチャー 発射台ページの組み立て
-   kokuba_version: 2026-09-20.1 */
+   kokuba_version: 2026-09-20.2 */
 'use strict';
 (function () {
   var clinic = CLINICS[document.body.dataset.clinic];
@@ -70,7 +70,15 @@
       return '<div class="kid' + (sel.indexOf(i) >= 0 ? ' on' : '') + '" data-i="' + i + '">' +
         p.name + '<span class="n">' + (sel.indexOf(i) >= 0 ? '選ばれています' : 'はずれています') + '</span></div>';
     }).join('');
-    $('#kids').innerHTML = rows || '<div class="mini">設定で子の名前を入れると、ここに並びます。</div>';
+    /* しんどうは「誰の診察券でログインするか」で、画面に出てくる子が決まる */
+    var tail = '';
+    if (clinic.key === 'shindo' && activePeople(cfg, 'shindo').length) {
+      var li = shindoLoginIndex(cfg), who = (cfg.people[li] || {}).name || '';
+      tail = '<div class="mini" style="margin-top:10px">ログインに使うのは <b>' + who +
+        '</b> の診察券です。ほかの子をこの画面で選ぶには、' + who +
+        ' を代表者にした<b>家族登録</b>が要ります（設定から変えられます）。</div>';
+    }
+    $('#kids').innerHTML = (rows || '<div class="mini">設定で子の名前を入れると、ここに並びます。</div>') + tail;
     $$('#kids .kid[data-i]').forEach(function (el) {
       el.addEventListener('click', function () {
         var i = +el.dataset.i, s = cfg.sel[clinic.key], at = s.indexOf(i);
@@ -184,11 +192,9 @@
       return;
     }
     if (clinic.key === 'shindo') {
-      /* ログインに使うのは診察券番号を持っている子（家族登録してあれば中で切り替えられる） */
-      var sel = cfg.sel.shindo.filter(function (i) {
-        return cfg.people[i] && canBook(cfg.people[i], 'shindo');
-      });
-      fireShindo(clinic, cfg, sel.length ? sel[0] : 0);
+      /* 家族登録の「代表者」でログインしないと他の子が画面に出てこない。
+         設定の指定を最優先にする（未指定なら選ばれている子の先頭）。 */
+      fireShindo(clinic, cfg, shindoLoginIndex(cfg));
     } else {
       fireShibata(clinic);
     }
